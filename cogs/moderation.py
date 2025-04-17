@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+from datetime import timedelta
 import asyncio
 
 class Moderation(commands.Cog):
@@ -33,10 +34,17 @@ class Moderation(commands.Cog):
         await user.kick(reason=reason)
         await interaction.response.send_message(f"{user} has been kicked. Reason: {reason}")
 
-    @app_commands.command(name="mute", description="Mute a user (timeout).")
-    async def mute(self, interaction: discord.Interaction, user: discord.Member, duration: int = 10, reason: str = "Muted"):
-        await user.timeout(discord.utils.utcnow() + discord.utils.timedelta(minutes=duration), reason=reason)
-        await interaction.response.send_message(f"{user.mention} has been muted for {duration} minutes.")
+     @app_commands.command(name="mute", description="Timeout a user.")
+    async def mute(self, interaction: discord.Interaction, member: discord.Member, duration: int):
+        try:
+            await member.timeout(timedelta(minutes=duration))
+            await interaction.response.send_message(
+                f"🔇 {member.mention} has been muted for {duration} minutes."
+            )
+        except Exception as e:
+            await interaction.response.send_message(
+                f"❌ Failed to mute: {e}", ephemeral=True
+            )
 
     @app_commands.command(name="unmute", description="Unmute a user.")
     async def unmute(self, interaction: discord.Interaction, user: discord.Member):
@@ -57,9 +65,10 @@ class Moderation(commands.Cog):
             await interaction.response.send_message(f"Warnings for {user.mention}: " + "; ".join(warns))
 
     @app_commands.command(name="clear", description="Bulk delete messages.")
-    async def clear(self, interaction: discord.Interaction, amount: int = 10):
-        await interaction.channel.purge(limit=amount)
-        await interaction.response.send_message(f"Deleted {amount} messages.", ephemeral=True)
+    async def clear(self, interaction: discord.Interaction, amount: int):
+        await interaction.response.defer(ephemeral=True)  # Tell Discord you're working
+        deleted = await interaction.channel.purge(limit=amount)
+        await interaction.followup.send(f"🧹 Deleted {len(deleted)} messages.", ephemeral=True)
 
     @app_commands.command(name="lock", description="Lock the channel.")
     async def lock(self, interaction: discord.Interaction):
