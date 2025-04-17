@@ -23,6 +23,20 @@ def init_db():
     conn.commit()
     conn.close()
 
+def set_antispam_settings(guild_id, enabled, punishment, timeout):
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+
+    c.execute("""
+    INSERT INTO automod_settings (guild_id, antispam_enabled, antispam_punishment, antispam_timeout)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT (guild_id) DO UPDATE SET
+        antispam_enabled = ?, antispam_punishment = ?, antispam_timeout = ?;
+    """, (guild_id, enabled, punishment, timeout, enabled, punishment, timeout))
+
+    conn.commit()
+    conn.close()
+
 def set_antilink_settings(guild_id, enabled, punishment, timeout):
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
