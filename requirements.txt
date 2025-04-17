@@ -1,5 +1,5 @@
-discord.py==2.3.1
-flask==2.2.2
-waitress==2.1.2
-PyNaCl==1.5.0
+discord.py
+flask
+waitress
+PyNaCl
 sqlite3  # sqlite3 is part of Python's standard library, so no need to add it explicitly
