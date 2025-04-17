@@ -144,6 +144,7 @@ async def on_ready():
 async def help_command(interaction: discord.Interaction):
     help_text = (
         "Here are the available commands:\n"
+        "/help - Show a list of available commands\n"
         "/antispam - Configure anti-spam system\n"
         "/antilink - Configure anti-link system\n"
         # Add more commands with descriptions here
