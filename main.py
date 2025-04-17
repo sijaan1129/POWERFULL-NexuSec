@@ -2,7 +2,23 @@ import discord
 from discord.ext import commands
 import asyncio
 import os
+import threading
+from flask import Flask
 
+# --- Web server for Render (FREE plan workaround) ---
+app = Flask("")
+
+@app.route("/")
+def home():
+    return "Bot is running!"
+
+def run_web():
+    app.run(host="0.0.0.0", port=8080)
+
+threading.Thread(target=run_web).start()
+# -----------------------------------------------------
+
+# Discord bot setup
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
