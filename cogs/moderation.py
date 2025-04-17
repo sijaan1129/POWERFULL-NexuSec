@@ -20,22 +20,22 @@ class Moderation(commands.Cog):
     async def ban(self, interaction: discord.Interaction, user: discord.Member, reason: str = "No reason provided"):
         await interaction.response.defer(ephemeral=True)  # Defer the response
         await user.ban(reason=reason)
-        await interaction.followup.send(f"{user} has been banned. Reason: {reason}")
+        await interaction.followup.send(f"{member.mention} has been banned. Reason: {reason}")
         log = self.get_modlog(interaction.guild)
-        if log: await log.send(f"🔨 {user} was banned. Reason: {reason}")
+        if log: await log.send(f"🔨 {member.mention} was banned. Reason: {reason}")
 
     @app_commands.command(name="unban", description="Unban a user.")
     async def unban(self, interaction: discord.Interaction, user_id: str):
         await interaction.response.defer(ephemeral=True)
         user = await self.bot.fetch_user(int(user_id))
-        await interaction.guild.unban(user)
-        await interaction.followup.send(f"{user} has been unbanned.")
+        await interaction.guild.unban(member.mention)
+        await interaction.followup.send(f"{member.mention} has been unbanned.")
     
     @app_commands.command(name="kick", description="Kick a user.")
     async def kick(self, interaction: discord.Interaction, user: discord.Member, reason: str = "No reason provided"):
         await interaction.response.defer(ephemeral=True)
         await user.kick(reason=reason)
-        await interaction.followup.send(f"{user} has been kicked. Reason: {reason}")
+        await interaction.followup.send(f"{member.mention} has been kicked. Reason: {reason}")
 
     @app_commands.command(name="mute", description="Timeout a user.")
     async def mute(self, interaction: discord.Interaction, member: discord.Member, duration: int):
