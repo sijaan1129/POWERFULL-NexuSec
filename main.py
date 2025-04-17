@@ -51,6 +51,7 @@ async def load_cogs():
         try:
             await bot.load_extension(cog)
             print(f"✅ Loaded {cog}")
+            await bot.load_extension("anti_abuse")  # Add this line to load the anti-abuse cog
         except Exception as e:
             print(f"❌ Failed to load {cog}: {e}")
 
