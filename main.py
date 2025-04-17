@@ -18,6 +18,10 @@ def run_web():
 threading.Thread(target=run_web).start()
 # -----------------------------------------------------
 
+# ✅ Initialize database
+from db import init_db
+init_db()
+
 # Discord bot setup
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
