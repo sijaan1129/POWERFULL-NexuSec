@@ -104,15 +104,28 @@ class Utility(commands.Cog):
         await interaction.response.send_message("❌ You are no longer verified.")
 
     @app_commands.command(name="help", description="Show all available commands.")
-    async def help(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="🤖 NexuSec Help Menu", color=discord.Color.blue())
-        embed.add_field(name="🛡️ Moderation", value="`/ban`, `/kick`, `/mute`, `/warn`, `/lock`, etc.", inline=False)
-        embed.add_field(name="⚙️ AutoMod", value="`/antispam`, `/antilink`, `/addbadword`, etc.", inline=False)
-        embed.add_field(name="🧰 Utility", value="`/ping`, `/userinfo`, `/uptime`, `/afk`, etc.", inline=False)
-        embed.add_field(name="📢 Announcement", value="`/announce`, `/welcome`, `/log`, `/autoroles`, etc.", inline=False)
-        embed.add_field(name="🎉 Fun", value="`/poll`, `/giveaway`", inline=False)
-        embed.add_field(name="💬 Custom Commands", value="`/custom add`, `/custom delete`, `/custom list`", inline=False)
-        await interaction.response.send_message(embed=embed)
+async def help(self, interaction: discord.Interaction):
+    embed = discord.Embed(title="🤖 NexuSec Help Menu", color=discord.Color.blue())
+
+    # Moderation commands
+    embed.add_field(name="🛡️ Moderation", value="`/ban` - Ban a member\n`/kick` - Kick a member\n`/mute` - Mute a member\n`/warn` - Warn a member\n`/lock` - Lock a channel", inline=False)
+
+    # AutoMod commands
+    embed.add_field(name="⚙️ AutoMod", value="`/antispam` - Configure anti-spam settings\n`/antilink` - Configure anti-link settings\n`/addbadword` - Add a word to the bad word filter\n`/removebadword` - Remove a word from the bad word filter\n`/badwords` - View the list of blacklisted words", inline=False)
+
+    # Utility commands
+    embed.add_field(name="🧰 Utility", value="`/ping` - Check the bot's latency\n`/userinfo` - Get information about a user\n`/uptime` - Check how long the bot has been online\n`/afk` - Set your AFK status\n`/verify` - Mark yourself as verified (bypass restrictions)\n`/unverify` - Remove verification bypass", inline=False)
+
+    # Announcement commands
+    embed.add_field(name="📢 Announcement", value="`/announce` - Send an announcement\n`/welcome` - Set up welcome messages\n`/log` - Set up logging channels\n`/autoroles` - Configure auto roles for new members", inline=False)
+
+    # Fun commands
+    embed.add_field(name="🎉 Fun", value="`/poll` - Create a poll\n`/giveaway` - Create a giveaway", inline=False)
+
+    # Custom commands
+    embed.add_field(name="💬 Custom Commands", value="`/custom add` - Add a custom command\n`/custom delete` - Delete a custom command\n`/custom list` - List all custom commands", inline=False)
+
+    await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Utility(bot))
