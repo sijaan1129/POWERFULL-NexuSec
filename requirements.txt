@@ -2,3 +2,4 @@ discord.py
 flask
 waitress
 psycopg2-binary
+pip install PyNaCl
