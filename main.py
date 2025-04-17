@@ -142,6 +142,20 @@ async def on_ready():
 
     pass  # Cogs are already loaded in load_cogs()
 
+@bot.tree.command(name="help", description="Show all available commands with descriptions.")
+async def help(interaction: discord.Interaction):
+    embed = discord.Embed(title="🤖 NexuSec Help Menu", color=discord.Color.blue())
+
+    embed.add_field(name="🛡️ **Moderation Commands**", value="`/ban`: Ban a user.\n`/kick`: Kick a user.\n`/mute`: Mute a user.\n`/warn`: Warn a user.\n`/lock`: Lock a channel.\n", inline=False)
+    embed.add_field(name="⚙️ **Anti-Spam Commands**", value="`/antispam`: Configure anti-spam settings.\n", inline=False)
+    embed.add_field(name="🔗 **Anti-Link Commands**", value="`/antilink`: Configure anti-link settings.\n", inline=False)
+    embed.add_field(name="🧰 **Utility Commands**", value="`/ping`: Check the bot's latency.\n`/userinfo`: Get user info.\n`/uptime`: Get bot uptime.\n", inline=False)
+    embed.add_field(name="📢 **Announcement Commands**", value="`/announce`: Send an announcement.\n", inline=False)
+    embed.add_field(name="🎉 **Fun Commands**", value="`/poll`: Create a poll.\n`/giveaway`: Start a giveaway.\n", inline=False)
+    embed.add_field(name="💬 **Custom Commands**", value="`/custom add`: Add a custom command.\n`/custom delete`: Delete a custom command.\n", inline=False)
+    
+    await interaction.response.send_message(embed=embed)
+
 @bot.tree.command(name="antispam", description="Configure anti-spam system")
 async def antispam(interaction: discord.Interaction):
     view = SettingView("antispam")
