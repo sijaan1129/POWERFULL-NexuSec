@@ -18,6 +18,21 @@ def run_web():
 
 threading.Thread(target=run_web).start()
 
+# --- Self-ping to prevent sleeping on Render ---
+import requests
+import time
+
+def ping_self():
+    while True:
+        try:
+            requests.get("https://discord-bot-m24w.onrender.com")  # ✅ Your actual Render URL
+            print("🔁 Self-ping sent.")
+        except Exception as e:
+            print("⚠️ Ping failed:", e)
+        time.sleep(300)  # ping every 5 minutes
+
+threading.Thread(target=ping_self).start()
+
 # ✅ Initialize database
 init_db()
 
@@ -32,11 +47,10 @@ COGS = [
     "cogs.announcements",
     "cogs.fun",
     "cogs.custom_commands",
-    "cogs.whitelist"  # Add whitelist cog
+    "cogs.whitelist"
 ]
 
 # --- Dropdown Components ---
-
 class StateSelect(discord.ui.Select):
     def __init__(self, feature: str):
         self.feature = feature
@@ -50,7 +64,6 @@ class StateSelect(discord.ui.Select):
         view: SettingView = self.view
         view.state = self.values[0]
         await view.update(interaction)
-
 
 class PunishmentSelect(discord.ui.Select):
     def __init__(self, feature: str):
@@ -66,7 +79,6 @@ class PunishmentSelect(discord.ui.Select):
         view: SettingView = self.view
         view.punishment = self.values[0]
         await view.update(interaction)
-
 
 class DurationSelect(discord.ui.Select):
     def __init__(self, feature: str):
@@ -84,7 +96,6 @@ class DurationSelect(discord.ui.Select):
         view.duration = int(self.values[0])
         await view.update(interaction)
 
-
 class SettingView(discord.ui.View):
     def __init__(self, feature: str):
         super().__init__(timeout=None)
@@ -100,7 +111,6 @@ class SettingView(discord.ui.View):
     async def update(self, interaction: discord.Interaction):
         if all([self.state, self.punishment, self.duration is not None]):
             guild_id = interaction.guild.id
-
             try:
                 if self.feature == "antispam":
                     set_antispam_settings(guild_id, self.state == "enable", self.punishment, self.duration)
@@ -112,20 +122,19 @@ class SettingView(discord.ui.View):
                     f"• State: **{self.state}**\n"
                     f"• Punishment: **{self.punishment}**\n"
                     f"• Duration: **{self.duration} minutes**",
-                    ephemeral=False  # Set to False to make it visible to everyone
+                    ephemeral=False
                 )
             except Exception as e:
                 await interaction.response.send_message(
                     f"❌ There was an error while updating the settings for {self.feature}. Please try again.",
-                    ephemeral=False  # Display the error to everyone
+                    ephemeral=False
                 )
                 print(f"Error updating {self.feature} settings: {e}")
         else:
             await interaction.response.send_message(
                 "❌ Please select all options to update the settings.",
-                ephemeral=False  # Display to everyone in case of incomplete selection
+                ephemeral=False
             )
-
 
 # --- Slash Commands ---
 @bot.event
@@ -139,20 +148,17 @@ async def on_ready():
         print(f"❌ Slash command sync error: {e}")
 
     await bot.load_extension("cogs.automod")
-    await bot.load_extension("cogs.whitelist")  # Load the whitelist cog
-
+    await bot.load_extension("cogs.whitelist")
 
 @bot.tree.command(name="antispam", description="Configure anti-spam system")
 async def antispam(interaction: discord.Interaction):
     view = SettingView("antispam")
     await interaction.response.send_message("⚙️ Configure **Anti-Spam** settings:", view=view, ephemeral=True)
 
-
 @bot.tree.command(name="antilink", description="Configure anti-link system")
 async def antilink(interaction: discord.Interaction):
     view = SettingView("antilink")
     await interaction.response.send_message("⚙️ Configure **Anti-Link** settings:", view=view, ephemeral=True)
-
 
 # --- Run Bot ---
 async def load_cogs():
