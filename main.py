@@ -140,8 +140,7 @@ async def on_ready():
     except Exception as e:
         print(f"❌ Slash command sync error: {e}")
 
-    await bot.load_extension("cogs.automod")
-    await bot.load_extension("cogs.whitelist")
+    pass  # Cogs are already loaded in load_cogs()
 
 @bot.tree.command(name="antispam", description="Configure anti-spam system")
 async def antispam(interaction: discord.Interaction):
