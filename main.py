@@ -3,20 +3,27 @@ from discord.ext import commands
 import os
 import asyncio
 import threading
+import logging
 from flask import Flask
+from datetime import datetime
 from db import set_antispam_settings, set_antilink_settings, init_db
+
+# --- Logging ---
+logging.basicConfig(level=logging.INFO)
 
 # --- Web server for Render (FREE plan workaround) ---
 app = Flask("")
 
 @app.route("/")
 def home():
-    return "Bot is running!"
+    return f"NexuSec is online – {datetime.utcnow()} UTC"
 
 def run_web():
-    app.run(host="0.0.0.0", port=8080)
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=8080)
 
-threading.Thread(target=run_web).start()
+# Keep Flask thread alive
+threading.Thread(target=run_web, daemon=True).start()
 
 # ✅ Initialize database
 init_db()
@@ -32,7 +39,7 @@ COGS = [
     "cogs.announcements",
     "cogs.fun",
     "cogs.custom_commands",
-    "cogs.whitelist"  # Add whitelist cog
+    "cogs.whitelist"
 ]
 
 # --- Dropdown Components ---
@@ -50,7 +57,6 @@ class StateSelect(discord.ui.Select):
         view.state = self.values[0]
         await view.update(interaction)
 
-
 class PunishmentSelect(discord.ui.Select):
     def __init__(self, feature: str):
         self.feature = feature
@@ -65,7 +71,6 @@ class PunishmentSelect(discord.ui.Select):
         view: SettingView = self.view
         view.punishment = self.values[0]
         await view.update(interaction)
-
 
 class DurationSelect(discord.ui.Select):
     def __init__(self, feature: str):
@@ -82,7 +87,6 @@ class DurationSelect(discord.ui.Select):
         view: SettingView = self.view
         view.duration = int(self.values[0])
         await view.update(interaction)
-
 
 class SettingView(discord.ui.View):
     def __init__(self, feature: str):
@@ -111,20 +115,19 @@ class SettingView(discord.ui.View):
                     f"• State: **{self.state}**\n"
                     f"• Punishment: **{self.punishment}**\n"
                     f"• Duration: **{self.duration} minutes**",
-                    ephemeral=False  # Set to False to make it visible to everyone
+                    ephemeral=False
                 )
             except Exception as e:
                 await interaction.response.send_message(
                     f"❌ There was an error while updating the settings for {self.feature}. Please try again.",
-                    ephemeral=False  # Display the error to everyone
+                    ephemeral=False
                 )
                 print(f"Error updating {self.feature} settings: {e}")
         else:
             await interaction.response.send_message(
                 "❌ Please select all options to update the settings.",
-                ephemeral=False  # Display to everyone in case of incomplete selection
+                ephemeral=False
             )
-
 
 # --- Slash Commands ---
 @bot.event
@@ -138,20 +141,17 @@ async def on_ready():
         print(f"❌ Slash command sync error: {e}")
 
     await bot.load_extension("cogs.automod")
-    await bot.load_extension("cogs.whitelist")  # Load the whitelist cog
-
+    await bot.load_extension("cogs.whitelist")
 
 @bot.tree.command(name="antispam", description="Configure anti-spam system")
 async def antispam(interaction: discord.Interaction):
     view = SettingView("antispam")
     await interaction.response.send_message("⚙️ Configure **Anti-Spam** settings:", view=view, ephemeral=True)
 
-
 @bot.tree.command(name="antilink", description="Configure anti-link system")
 async def antilink(interaction: discord.Interaction):
     view = SettingView("antilink")
     await interaction.response.send_message("⚙️ Configure **Anti-Link** settings:", view=view, ephemeral=True)
-
 
 # --- Run Bot ---
 async def load_cogs():
@@ -167,5 +167,7 @@ async def main():
         await load_cogs()
         await bot.start(os.getenv("DISCORD_TOKEN"))
 
-# Ensure the bot stays alive on Render's free plan
-asyncio.run(main())
+try:
+    asyncio.run(main())
+except Exception as e:
+    print(f"❌ Bot crashed: {e}")
