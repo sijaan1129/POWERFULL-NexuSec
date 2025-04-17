@@ -12,23 +12,49 @@ class AntiAbuse(commands.Cog):
         self.punishment_type = "timeout"  # Default punishment
         self.timeout_duration = 5  # Default timeout duration in minutes
 
-    # Command to enable or disable anti-spam
+    # Command to enable or disable anti-spam with punishment selection
     @app_commands.command(name="antispam", description="Enable or disable anti-spam with punishment selection.")
-    @app_commands.describe(enable="Enable or disable anti-spam", punishment="Choose punishment for spammer")
-    async def antispam(self, interaction: discord.Interaction, enable: bool, punishment: str):
+    @app_commands.describe(enable="Enable or disable anti-spam", punishment="Choose punishment for spammer", time="Set timeout duration in minutes")
+    @app_commands.choices(
+        enable=[app_commands.Choice(name="True", value=True), app_commands.Choice(name="False", value=False)],
+        punishment=[
+            app_commands.Choice(name="Timeout", value="timeout"),
+            app_commands.Choice(name="Kick", value="kick"),
+            app_commands.Choice(name="Ban", value="ban")
+        ]
+    )
+    async def antispam(self, interaction: discord.Interaction, enable: bool, punishment: str, time: int = 5):
         self.antispam_enabled = enable
         self.punishment_type = punishment
-        await interaction.response.send_message(f"Anti-spam has been {'enabled' if enable else 'disabled'} with punishment set to {punishment}.")
-    
-    # Command to enable or disable anti-link
+        self.timeout_duration = time  # Set timeout duration from the argument
+        
+        await interaction.response.send_message(f"Anti-spam has been {'enabled' if enable else 'disabled'} with punishment set to {punishment}. Timeout duration: {time} minutes.")
+        
+        if punishment == "timeout":
+            await interaction.followup.send(f"Anti-spam will timeout users for {time} minutes if they spam.")
+
+    # Command to enable or disable anti-link with punishment selection
     @app_commands.command(name="antilink", description="Enable or disable anti-link with punishment selection.")
-    @app_commands.describe(enable="Enable or disable anti-link", punishment="Choose punishment for link spammers")
-    async def antilink(self, interaction: discord.Interaction, enable: bool, punishment: str):
+    @app_commands.describe(enable="Enable or disable anti-link", punishment="Choose punishment for link spammers", time="Set timeout duration in minutes")
+    @app_commands.choices(
+        enable=[app_commands.Choice(name="True", value=True), app_commands.Choice(name="False", value=False)],
+        punishment=[
+            app_commands.Choice(name="Timeout", value="timeout"),
+            app_commands.Choice(name="Kick", value="kick"),
+            app_commands.Choice(name="Ban", value="ban")
+        ]
+    )
+    async def antilink(self, interaction: discord.Interaction, enable: bool, punishment: str, time: int = 5):
         self.antilink_enabled = enable
         self.punishment_type = punishment
-        await interaction.response.send_message(f"Anti-link has been {'enabled' if enable else 'disabled'} with punishment set to {punishment}.")
-    
-    # Punishment Application based on settings
+        self.timeout_duration = time  # Set timeout duration from the argument
+        
+        await interaction.response.send_message(f"Anti-link has been {'enabled' if enable else 'disabled'} with punishment set to {punishment}. Timeout duration: {time} minutes.")
+        
+        if punishment == "timeout":
+            await interaction.followup.send(f"Anti-link will timeout users for {time} minutes if they post links.")
+
+    # Apply punishment based on settings (timeout, kick, or ban)
     async def apply_punishment(self, member, punishment_type):
         if punishment_type == "timeout":
             await member.timeout(timedelta(minutes=self.timeout_duration))
@@ -69,11 +95,6 @@ class AntiAbuse(commands.Cog):
                 await message.delete()
                 await message.channel.send(f"🚫 {user.mention} was punished for spamming!")
             await asyncio.sleep(1)
-
-    @app_commands.command(name="settimeout", description="Set timeout duration in minutes.")
-    async def settimeout(self, interaction: discord.Interaction, duration: int):
-        self.timeout_duration = duration
-        await interaction.response.send_message(f"Timeout duration has been set to {duration} minutes.")
 
 async def setup(bot):
     await bot.add_cog(AntiAbuse(bot))
