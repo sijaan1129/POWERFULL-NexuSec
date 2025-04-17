@@ -88,7 +88,7 @@ class Automod(commands.Cog):
         await interaction.response.send_message("Bad words list: " + ", ".join(words) if words else "No bad words added.")
 
     @app_commands.command(name="allowantilink", description="Whitelist a user or role from anti-link.")
-    async def allow_antilink(self, interaction: discord.Interaction, member_or_role: discord.abc.Snowflake):
+    async def allow_antilink(self, interaction: discord.Interaction, member_or_role: discord.Member):
         entry = self.antilink_whitelist.setdefault(interaction.guild.id, {"users": [], "roles": []})
         if isinstance(member_or_role, discord.Member):
             entry["users"].append(member_or_role.id)
@@ -97,7 +97,7 @@ class Automod(commands.Cog):
         await interaction.response.send_message(f"{member_or_role} has been whitelisted from anti-link.")
 
     @app_commands.command(name="disallowantilink", description="Remove user or role from anti-link whitelist.")
-    async def disallow_antilink(self, interaction: discord.Interaction, member_or_role: discord.abc.Snowflake):
+    async def disallow_antilink(self, interaction: discord.Interaction, member_or_role: discord.Member):
         entry = self.antilink_whitelist.setdefault(interaction.guild.id, {"users": [], "roles": []})
         if isinstance(member_or_role, discord.Member):
             entry["users"].remove(member_or_role.id)
