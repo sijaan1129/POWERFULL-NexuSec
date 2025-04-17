@@ -17,6 +17,11 @@ class Automod(commands.Cog):
         wl = self.antilink_whitelist.get(guild_id, {"users": [], "roles": []})
         return user.id in wl["users"] or any(role.id in wl["roles"] for role in user.roles)
 
+    def has_higher_role(self, guild, user: discord.Member):
+        """Check if the user has a role higher than the bot's role."""
+        bot_role = guild.me.top_role
+        return any(role > bot_role for role in user.roles)
+
     async def timeout_user(self, member, minutes, reason):
         try:
             await member.timeout(until=discord.utils.utcnow() + timedelta(minutes=minutes), reason=reason)
@@ -36,6 +41,10 @@ class Automod(commands.Cog):
 
         guild_id = message.guild.id
         user_id = message.author.id
+
+        # Check if user has a higher role than the bot, if yes, skip the punishment
+        if self.has_higher_role(message.guild, message.author):
+            return
 
         # Anti-Spam functionality
         if self.antispam_enabled.get(guild_id, False):
