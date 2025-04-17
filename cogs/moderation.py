@@ -34,17 +34,13 @@ class Moderation(commands.Cog):
         await user.kick(reason=reason)
         await interaction.response.send_message(f"{user} has been kicked. Reason: {reason}")
 
-     @app_commands.command(name="mute", description="Timeout a user.")
+    @app_commands.command(name="mute", description="Timeout a user.")
     async def mute(self, interaction: discord.Interaction, member: discord.Member, duration: int):
         try:
-            await member.timeout(timedelta(minutes=duration))
-            await interaction.response.send_message(
-                f"🔇 {member.mention} has been muted for {duration} minutes."
-            )
-        except Exception as e:
-            await interaction.response.send_message(
-                f"❌ Failed to mute: {e}", ephemeral=True
-            )
+        await member.timeout(timedelta(minutes=duration))
+        await interaction.response.send_message(f"🔇 {member.mention} has been muted for {duration} minutes.")
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Failed to mute: {e}", ephemeral=True)
 
     @app_commands.command(name="unmute", description="Unmute a user.")
     async def unmute(self, interaction: discord.Interaction, user: discord.Member):
