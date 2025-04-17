@@ -44,6 +44,8 @@ async def on_ready():
     except Exception as e:
         print(f"❌ Slash command sync error: {e}")
 
+    await bot.load_extension("anti_abuse")
+
 async def load_cogs():
     for cog in COGS:
         try:
