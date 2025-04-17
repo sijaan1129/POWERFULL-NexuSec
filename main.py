@@ -34,6 +34,10 @@ COGS = [
 @bot.event
 async def on_ready():
     print(f"✅ Logged in as {bot.user} (ID: {bot.user.id})")
+    
+    # Set the custom playing status
+    await bot.change_presence(activity=discord.Game(name="Playing /help NexuSecbot.gg"))
+    
     try:
         synced = await bot.tree.sync()
         print(f"🔁 Synced {len(synced)} command(s).")
