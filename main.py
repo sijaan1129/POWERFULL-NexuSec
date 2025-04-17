@@ -92,4 +92,6 @@ async def main():
         await load_cogs()
         await bot.start(os.getenv("DISCORD_TOKEN"))
 
+keep_alive()
+load_dotenv()
 asyncio.run(main())
