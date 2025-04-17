@@ -31,7 +31,8 @@ COGS = [
     "cogs.utility",
     "cogs.announcements",
     "cogs.fun",
-    "cogs.custom_commands"
+    "cogs.custom_commands",
+    "cogs.whitelist"  # Add whitelist cog
 ]
 
 # --- Dropdown Components ---
@@ -126,6 +127,7 @@ async def on_ready():
         print(f"❌ Slash command sync error: {e}")
 
     await bot.load_extension("cogs.automod")
+    await bot.load_extension("cogs.whitelist")  # Load the whitelist cog
 
 
 @bot.tree.command(name="antispam", description="Configure anti-spam system")
