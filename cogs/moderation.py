@@ -21,26 +21,28 @@ class Moderation(commands.Cog):
         await user.ban(reason=reason)
         await interaction.response.send_message(f"{user} has been banned. Reason: {reason}")
         log = self.get_modlog(interaction.guild)
-        if log: await log.send(f"🔨 {user} was banned. Reason: {reason}")
+        if log:
+            await log.send(f"🔨 {user} was banned. Reason: {reason}")
 
     @app_commands.command(name="unban", description="Unban a user.")
     async def unban(self, interaction: discord.Interaction, user_id: str):
         user = await self.bot.fetch_user(int(user_id))
         await interaction.guild.unban(user)
         await interaction.response.send_message(f"{user} has been unbanned.")
-    
+
     @app_commands.command(name="kick", description="Kick a user.")
     async def kick(self, interaction: discord.Interaction, user: discord.Member, reason: str = "No reason provided"):
         await user.kick(reason=reason)
         await interaction.response.send_message(f"{user} has been kicked. Reason: {reason}")
 
     @app_commands.command(name="mute", description="Timeout a user.")
+    @app_commands.describe(member="The member to mute", duration="Duration in minutes")
     async def mute(self, interaction: discord.Interaction, member: discord.Member, duration: int):
         try:
-        await member.timeout(timedelta(minutes=duration))
-        await interaction.response.send_message(f"🔇 {member.mention} has been muted for {duration} minutes.")
-    except Exception as e:
-        await interaction.response.send_message(f"❌ Failed to mute: {e}", ephemeral=True)
+            await member.timeout(timedelta(minutes=duration))
+            await interaction.response.send_message(f"🔇 {member.mention} has been muted for {duration} minutes.")
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Failed to mute: {e}", ephemeral=True)
 
     @app_commands.command(name="unmute", description="Unmute a user.")
     async def unmute(self, interaction: discord.Interaction, user: discord.Member):
@@ -48,11 +50,13 @@ class Moderation(commands.Cog):
         await interaction.response.send_message(f"{user.mention} has been unmuted.")
 
     @app_commands.command(name="warn", description="Warn a user.")
+    @app_commands.describe(user="User to warn", reason="Reason for warning")
     async def warn(self, interaction: discord.Interaction, user: discord.Member, reason: str = "No reason provided"):
         self.warnings.setdefault(user.id, []).append(reason)
         await interaction.response.send_message(f"{user.mention} has been warned. Reason: {reason}")
 
     @app_commands.command(name="warnings", description="View a user's warnings.")
+    @app_commands.describe(user="User to check warnings for")
     async def warnings(self, interaction: discord.Interaction, user: discord.Member):
         warns = self.warnings.get(user.id, [])
         if not warns:
@@ -61,8 +65,9 @@ class Moderation(commands.Cog):
             await interaction.response.send_message(f"Warnings for {user.mention}: " + "; ".join(warns))
 
     @app_commands.command(name="clear", description="Bulk delete messages.")
+    @app_commands.describe(amount="Number of messages to delete")
     async def clear(self, interaction: discord.Interaction, amount: int):
-        await interaction.response.defer(ephemeral=True)  # Tell Discord you're working
+        await interaction.response.defer(ephemeral=True)
         deleted = await interaction.channel.purge(limit=amount)
         await interaction.followup.send(f"🧹 Deleted {len(deleted)} messages.", ephemeral=True)
 
@@ -81,11 +86,13 @@ class Moderation(commands.Cog):
         await interaction.response.send_message("🔓 Channel unlocked.")
 
     @app_commands.command(name="slowmode", description="Set slowmode for the channel.")
+    @app_commands.describe(seconds="Number of seconds for slowmode")
     async def slowmode(self, interaction: discord.Interaction, seconds: int):
         await interaction.channel.edit(slowmode_delay=seconds)
         await interaction.response.send_message(f"Slowmode set to {seconds} seconds.")
 
     @app_commands.command(name="softban", description="Ban and then unban (deletes messages).")
+    @app_commands.describe(user="User to softban", reason="Reason for softban")
     async def softban(self, interaction: discord.Interaction, user: discord.Member, reason: str = "Softban"):
         await interaction.guild.ban(user, reason=reason)
         await asyncio.sleep(1)
@@ -93,6 +100,7 @@ class Moderation(commands.Cog):
         await interaction.response.send_message(f"{user} has been softbanned.")
 
     @app_commands.command(name="modlogs", description="Set the modlog channel.")
+    @app_commands.describe(channel="Channel to send mod logs to")
     async def modlogs(self, interaction: discord.Interaction, channel: discord.TextChannel):
         self.modlog_channel_id = channel.id
         await interaction.response.send_message(f"Modlog channel set to {channel.mention}")
