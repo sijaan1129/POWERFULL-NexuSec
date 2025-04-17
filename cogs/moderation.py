@@ -27,11 +27,21 @@ class Moderation(commands.Cog):
             await log.send(f"🔨 {user.mention} was banned by {interaction.user.mention}. Reason: {reason}")
 
     @app_commands.command(name="unban", description="Unban a user.")
+    @app_commands.describe(user_id="User ID to unban")
     async def unban(self, interaction: discord.Interaction, user_id: str):
-        await interaction.response.defer(ephemeral=True)
-        user = await self.bot.fetch_user(int(user_id))
-        await interaction.guild.unban(member.mention)
-        await interaction.followup.send(f"{member.mention} has been unbanned.")
+        await interaction.response.defer()  # Prevent the timeout
+
+        try:
+            user = await self.bot.fetch_user(int(user_id))
+            await interaction.guild.unban(user)
+            await interaction.followup.send(f"✅ {user.mention} has been unbanned.")
+        
+            log = self.get_modlog(interaction.guild)
+            if log:
+                await log.send(f"✅ {user.mention} was unbanned by {interaction.user.mention}.")
+        except Exception as e:
+            await interaction.followup.send(f"❌ Failed to unban: {e}")
+
     
     @app_commands.command(name="kick", description="Kick a user.")
     @app_commands.describe(user="User to kick", reason="Reason for kick")
