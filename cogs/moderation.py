@@ -18,13 +18,13 @@ class Moderation(commands.Cog):
     @app_commands.command(name="ban", description="Ban a user.")
     @app_commands.describe(user="User to ban", reason="Reason for ban")
     async def ban(self, interaction: discord.Interaction, user: discord.Member, reason: str = "No reason provided"):
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer()  # Let Discord know you're working
         await user.ban(reason=reason)
         await interaction.followup.send(f"🔨 {user.mention} has been banned. Reason: {reason}")
+    
         log = self.get_modlog(interaction.guild)
         if log:
             await log.send(f"🔨 {user.mention} was banned by {interaction.user.mention}. Reason: {reason}")
-
 
     @app_commands.command(name="unban", description="Unban a user.")
     async def unban(self, interaction: discord.Interaction, user_id: str):
@@ -34,10 +34,12 @@ class Moderation(commands.Cog):
         await interaction.followup.send(f"{member.mention} has been unbanned.")
     
     @app_commands.command(name="kick", description="Kick a user.")
+    @app_commands.describe(user="User to kick", reason="Reason for kick")
     async def kick(self, interaction: discord.Interaction, user: discord.Member, reason: str = "No reason provided"):
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer()
         await user.kick(reason=reason)
         await interaction.followup.send(f"👢 {user.mention} has been kicked. Reason: {reason}")
+    
         log = self.get_modlog(interaction.guild)
         if log:
             await log.send(f"👢 {user.mention} was kicked by {interaction.user.mention}. Reason: {reason}")
