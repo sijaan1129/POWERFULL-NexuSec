@@ -101,17 +101,29 @@ class SettingView(discord.ui.View):
         if all([self.state, self.punishment, self.duration is not None]):
             guild_id = interaction.guild.id
 
-            if self.feature == "antispam":
-                set_antispam_settings(guild_id, self.state == "enable", self.punishment, self.duration)
-            elif self.feature == "antilink":
-                set_antilink_settings(guild_id, self.state == "enable", self.punishment, self.duration)
+            try:
+                if self.feature == "antispam":
+                    set_antispam_settings(guild_id, self.state == "enable", self.punishment, self.duration)
+                elif self.feature == "antilink":
+                    set_antilink_settings(guild_id, self.state == "enable", self.punishment, self.duration)
 
+                await interaction.response.send_message(
+                    f"✅ **{self.feature.capitalize()}** settings updated:\n"
+                    f"• State: **{self.state}**\n"
+                    f"• Punishment: **{self.punishment}**\n"
+                    f"• Duration: **{self.duration} minutes**",
+                    ephemeral=False  # Set to False to make it visible to everyone
+                )
+            except Exception as e:
+                await interaction.response.send_message(
+                    f"❌ There was an error while updating the settings for {self.feature}. Please try again.",
+                    ephemeral=False  # Display the error to everyone
+                )
+                print(f"Error updating {self.feature} settings: {e}")
+        else:
             await interaction.response.send_message(
-                f"✅ **{self.feature.capitalize()}** settings updated:\n"
-                f"• State: **{self.state}**\n"
-                f"• Punishment: **{self.punishment}**\n"
-                f"• Duration: **{self.duration} minutes**",
-                ephemeral=True
+                "❌ Please select all options to update the settings.",
+                ephemeral=False  # Display to everyone in case of incomplete selection
             )
 
 
