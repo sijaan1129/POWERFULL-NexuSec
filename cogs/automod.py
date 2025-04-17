@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
+from discord import app_commands, ui
 from datetime import datetime, timedelta
 from db import set_antispam_settings, set_antilink_settings, get_antispam_settings, get_antilink_settings
 
@@ -13,44 +13,26 @@ class Automod(commands.Cog):
         self.antilink_whitelist = {}
         self.user_message_cache = {}
 
-        bot.loop.create_task(self.load_automod_settings())  # Load DB settings at startup
-
-    async def load_automod_settings(self):
-        await self.bot.wait_until_ready()
-        print("🔄 Loading automod settings...")
-
-        for guild in self.bot.guilds:
-            guild_id = guild.id
-
-            antispam = get_antispam_settings(guild_id)
-            if antispam:
-                self.antispam_enabled[guild_id] = antispam[0]  # True/False
-
-            antilink = get_antilink_settings(guild_id)
-            if antilink:
-                self.antilink_enabled[guild_id] = antilink[0]  # True/False
-
-        print("✅ Automod settings loaded.")
-
     def is_whitelisted(self, guild_id, user: discord.Member):
         wl = self.antilink_whitelist.get(guild_id, {"users": [], "roles": []})
         return user.id in wl["users"] or any(role.id in wl["roles"] for role in user.roles)
 
     def has_higher_role(self, guild, user: discord.Member):
+        """Check if the user has a role higher than the bot's role."""
         bot_role = guild.me.top_role
         return any(role > bot_role for role in user.roles)
 
     async def timeout_user(self, member, minutes, reason):
         try:
             await member.timeout(until=discord.utils.utcnow() + timedelta(minutes=minutes), reason=reason)
-            print(f"⏳ Timed out {member} for {minutes} minutes due to {reason}.")
+            print(f"Timed out {member} for {minutes} minutes due to {reason}.")
         except discord.Forbidden:
-            print(f"❌ Permission error: Cannot timeout {member}.")
+            print(f"Permission error: Bot doesn't have permission to timeout {member}.")
             await member.send("I don't have permission to timeout members in this server.")
         except discord.HTTPException as e:
-            print(f"⚠️ HTTPException when trying to timeout {member}: {e}")
+            print(f"HTTPException error when trying to timeout {member}: {e}")
         except Exception as e:
-            print(f"⚠️ Unexpected error when trying to timeout {member}: {e}")
+            print(f"Unexpected error when trying to timeout {member}: {e}")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -60,13 +42,11 @@ class Automod(commands.Cog):
         guild_id = message.guild.id
         user_id = message.author.id
 
-        print(f"[DEBUG] Message from {message.author}: {message.content}")
-        print(f"[DEBUG] antispam_enabled: {self.antispam_enabled.get(guild_id)}, antilink_enabled: {self.antilink_enabled.get(guild_id)}")
-
+        # Check if user has a higher role than the bot, if yes, skip the punishment
         if self.has_higher_role(message.guild, message.author):
             return
 
-        # Anti-Spam
+        # Anti-Spam functionality
         if self.antispam_enabled.get(guild_id, False):
             now = datetime.utcnow()
             self.user_message_cache.setdefault(user_id, []).append(now)
@@ -78,15 +58,15 @@ class Automod(commands.Cog):
                 await message.channel.send(f"{message.author.mention} has been timed out for spamming.", delete_after=5)
                 self.user_message_cache[user_id] = []
 
-        # Anti-Link
+        # Anti-Link functionality
         if self.antilink_enabled.get(guild_id, False) and not self.is_whitelisted(guild_id, message.author):
             if any(link in message.content for link in ["http://", "https://", "discord.gg/"]):
-                print(f"[DEBUG] Link detected from {message.author} in message: {message.content}")
+                print(f"Link detected from {message.author} in message: {message.content}")  # Debug
                 await message.delete()
-                await self.timeout_user(message.author, 30, "Posting links")
+                await self.timeout_user(message.author, 30, "Posting links")  # Timeout user after message delete
                 await message.channel.send(f"{message.author.mention} sent a link and has been timed out (30 min).", delete_after=5)
 
-        # Bad Words
+        # Bad Word filtering
         for word in self.badwords.get(guild_id, []):
             if word.lower() in message.content.lower():
                 await message.delete()
@@ -96,26 +76,41 @@ class Automod(commands.Cog):
     @app_commands.command(name="addbadword", description="Add a word to the blacklist.")
     async def addbadword(self, interaction: discord.Interaction, word: str):
         self.badwords.setdefault(interaction.guild.id, []).append(word.lower())
-        await interaction.response.send_message(f"✅ Added `{word}` to the blacklist.")
+        await interaction.response.send_message(f"Added `{word}` to the blacklist.")
 
     @app_commands.command(name="removebadword", description="Remove a word from the blacklist.")
     async def removebadword(self, interaction: discord.Interaction, word: str):
-        if word.lower() in self.badwords.get(interaction.guild.id, []):
-            self.badwords[interaction.guild.id].remove(word.lower())
-            await interaction.response.send_message(f"✅ Removed `{word}` from the blacklist.")
-        else:
-            await interaction.response.send_message(f"⚠️ `{word}` is not in the blacklist.")
+        self.badwords.get(interaction.guild.id, []).remove(word.lower())
+        await interaction.response.send_message(f"Removed `{word}` from the blacklist.")
 
     @app_commands.command(name="badwords", description="View all blacklisted words.")
     async def view_badwords(self, interaction: discord.Interaction):
         words = self.badwords.get(interaction.guild.id, [])
-        await interaction.response.send_message("📃 Bad words list: " + ", ".join(words) if words else "🚫 No bad words added.")
+        await interaction.response.send_message("Bad words list: " + ", ".join(words) if words else "No bad words added.")
 
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def reload_automod(self, ctx):
-        await self.load_automod_settings()
-        await ctx.send("🔄 Reloaded automod settings from the database.")
+    @app_commands.command(name="antispam", description="Enable or disable anti-spam settings.")
+    async def antispam(self, interaction: discord.Interaction, enable: bool):
+        guild_id = interaction.guild.id
+        # Get current anti-spam settings for the guild
+        current_settings = get_antispam_settings(guild_id)
+        
+        # Update anti-spam settings in the database
+        set_antispam_settings(guild_id, enable, current_settings[1], current_settings[2])
+        self.antispam_enabled[guild_id] = enable
+        
+        await interaction.response.send_message(f"Anti-spam is now {'enabled' if enable else 'disabled'}.")
 
+    @app_commands.command(name="antilink", description="Enable or disable anti-link settings.")
+    async def antilink(self, interaction: discord.Interaction, enable: bool):
+        guild_id = interaction.guild.id
+        # Get current anti-link settings for the guild
+        current_settings = get_antilink_settings(guild_id)
+
+        # Update anti-link settings in the database
+        set_antilink_settings(guild_id, enable, current_settings[1], current_settings[2])
+        self.antilink_enabled[guild_id] = enable
+        
+        await interaction.response.send_message(f"Anti-link is now {'enabled' if enable else 'disabled'}.")
+        
 async def setup(bot):
     await bot.add_cog(Automod(bot))
