@@ -27,10 +27,12 @@ class Utility(commands.Cog):
 
     @app_commands.command(name="ping", description="Check the bot's latency.")
     async def ping(self, interaction: discord.Interaction):
+        """Check the bot's latency."""
         await interaction.response.send_message(f"Pong! 🏓 `{round(self.bot.latency * 1000)}ms`")
 
     @app_commands.command(name="userinfo", description="Get information about a user.")
     async def userinfo(self, interaction: discord.Interaction, user: discord.Member = None):
+        """Get information about a user."""
         user = user or interaction.user
         embed = discord.Embed(title=f"User Info - {user}", color=discord.Color.blurple())
         embed.set_thumbnail(url=user.display_avatar.url)
@@ -42,6 +44,7 @@ class Utility(commands.Cog):
 
     @app_commands.command(name="serverinfo", description="View server information.")
     async def serverinfo(self, interaction: discord.Interaction):
+        """View server information."""
         guild = interaction.guild
         embed = discord.Embed(title="Server Info", color=discord.Color.green())
         embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
@@ -55,11 +58,13 @@ class Utility(commands.Cog):
 
     @app_commands.command(name="roles", description="List all roles in the server.")
     async def roles(self, interaction: discord.Interaction):
+        """List all roles in the server."""
         roles = [role.mention for role in interaction.guild.roles if role.name != "@everyone"]
         await interaction.response.send_message("Roles:\n" + ", ".join(roles) if roles else "No roles found.")
 
     @app_commands.command(name="roleinfo", description="Get info on a specific role.")
     async def roleinfo(self, interaction: discord.Interaction, role: discord.Role):
+        """Get info on a specific role."""
         embed = discord.Embed(title=f"Role Info - {role.name}", color=role.color)
         embed.add_field(name="ID", value=role.id)
         embed.add_field(name="Mentionable", value=role.mentionable)
@@ -69,6 +74,7 @@ class Utility(commands.Cog):
 
     @app_commands.command(name="channelinfo", description="Get info on a specific channel.")
     async def channelinfo(self, interaction: discord.Interaction, channel: discord.abc.GuildChannel):
+        """Get info on a specific channel."""
         embed = discord.Embed(title=f"Channel Info - {channel.name}", color=discord.Color.teal())
         embed.add_field(name="ID", value=channel.id)
         embed.add_field(name="Type", value=str(channel.type).capitalize())
@@ -77,11 +83,13 @@ class Utility(commands.Cog):
 
     @app_commands.command(name="avatar", description="Get a user's avatar.")
     async def avatar(self, interaction: discord.Interaction, user: discord.User = None):
+        """Get a user's avatar."""
         user = user or interaction.user
         await interaction.response.send_message(user.display_avatar.url)
 
     @app_commands.command(name="uptime", description="Check how long the bot has been online.")
     async def uptime(self, interaction: discord.Interaction):
+        """Check how long the bot has been online."""
         now = datetime.datetime.utcnow()
         delta = now - self.start_time
         hours, remainder = divmod(int(delta.total_seconds()), 3600)
@@ -90,42 +98,33 @@ class Utility(commands.Cog):
 
     @app_commands.command(name="afk", description="Set your AFK status.")
     async def afk(self, interaction: discord.Interaction, reason: str = "AFK"):
+        """Set your AFK status."""
         self.afk_users[interaction.user.id] = reason
         await interaction.response.send_message(f"{interaction.user.mention} is now AFK: {reason}")
 
     @app_commands.command(name="verify", description="Bypass restrictions (fake).")
     async def verify(self, interaction: discord.Interaction):
+        """Bypass restrictions (fake)."""
         self.verified_users.add(interaction.user.id)
         await interaction.response.send_message("✅ You have been marked as verified.")
 
     @app_commands.command(name="unverify", description="Remove verification bypass.")
     async def unverify(self, interaction: discord.Interaction):
+        """Remove verification bypass."""
         self.verified_users.discard(interaction.user.id)
         await interaction.response.send_message("❌ You are no longer verified.")
 
     @app_commands.command(name="help", description="Show all available commands.")
-async def help(self, interaction: discord.Interaction):
-    embed = discord.Embed(title="🤖 NexuSec Help Menu", color=discord.Color.blue())
-
-    # Moderation commands
-    embed.add_field(name="🛡️ Moderation", value="`/ban` - Ban a member\n`/kick` - Kick a member\n`/mute` - Mute a member\n`/warn` - Warn a member\n`/lock` - Lock a channel", inline=False)
-
-    # AutoMod commands
-    embed.add_field(name="⚙️ AutoMod", value="`/antispam` - Configure anti-spam settings\n`/antilink` - Configure anti-link settings\n`/addbadword` - Add a word to the bad word filter\n`/removebadword` - Remove a word from the bad word filter\n`/badwords` - View the list of blacklisted words", inline=False)
-
-    # Utility commands
-    embed.add_field(name="🧰 Utility", value="`/ping` - Check the bot's latency\n`/userinfo` - Get information about a user\n`/uptime` - Check how long the bot has been online\n`/afk` - Set your AFK status\n`/verify` - Mark yourself as verified (bypass restrictions)\n`/unverify` - Remove verification bypass", inline=False)
-
-    # Announcement commands
-    embed.add_field(name="📢 Announcement", value="`/announce` - Send an announcement\n`/welcome` - Set up welcome messages\n`/log` - Set up logging channels\n`/autoroles` - Configure auto roles for new members", inline=False)
-
-    # Fun commands
-    embed.add_field(name="🎉 Fun", value="`/poll` - Create a poll\n`/giveaway` - Create a giveaway", inline=False)
-
-    # Custom commands
-    embed.add_field(name="💬 Custom Commands", value="`/custom add` - Add a custom command\n`/custom delete` - Delete a custom command\n`/custom list` - List all custom commands", inline=False)
-
-    await interaction.response.send_message(embed=embed)
+    async def help(self, interaction: discord.Interaction):
+        """Show all available commands."""
+        embed = discord.Embed(title="🤖 NexuSec Help Menu", color=discord.Color.blue())
+        embed.add_field(name="🛡️ Moderation", value="`/ban`, `/kick`, `/mute`, `/warn`, `/lock`, etc.", inline=False)
+        embed.add_field(name="⚙️ AutoMod", value="`/antispam`, `/antilink`, `/addbadword`, etc.", inline=False)
+        embed.add_field(name="🧰 Utility", value="`/ping`, `/userinfo`, `/uptime`, `/afk`, etc.", inline=False)
+        embed.add_field(name="📢 Announcement", value="`/announce`, `/welcome`, `/log`, `/autoroles`, etc.", inline=False)
+        embed.add_field(name="🎉 Fun", value="`/poll`, `/giveaway`", inline=False)
+        embed.add_field(name="💬 Custom Commands", value="`/custom add`, `/custom delete`, `/custom list`", inline=False)
+        await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Utility(bot))
