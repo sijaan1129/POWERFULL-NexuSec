@@ -18,7 +18,6 @@ class AutoMod(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.link_pattern = re.compile(r"(https?://\S+|discord\.gg/\S+)")
-        # spam cache: {guild_id: {user_id: [timestamps]}}
         self.spam_cache = {}
 
     @commands.Cog.listener()
@@ -30,7 +29,6 @@ class AutoMod(commands.Cog):
         user = message.author
         bot_member = message.guild.me
 
-        # Skip if user has >= role than bot
         if user.top_role >= bot_member.top_role:
             await self.bot.process_commands(message)
             return
@@ -41,8 +39,7 @@ class AutoMod(commands.Cog):
         for word in get_badwords(guild_id):
             if word in content:
                 await message.delete()
-                await self._punish(user, message.channel,
-                                   reason="Used a blacklisted word")
+                await self._punish(user, message.channel, reason="Used a blacklisted word")
                 await self.bot.process_commands(message)
                 return
 
@@ -50,10 +47,8 @@ class AutoMod(commands.Cog):
         al_enabled, al_punishment, al_timeout = get_antilink_settings(guild_id)
         if al_enabled and self.link_pattern.search(content):
             await message.delete()
-            await self._punish(user, message.channel,
-                               punishment=al_punishment,
-                               duration=al_timeout,
-                               reason="Posted a link")
+            await self._punish(user, message.channel, punishment=al_punishment,
+                               duration=al_timeout, reason="Posted a link")
             await self.bot.process_commands(message)
             return
 
@@ -64,14 +59,11 @@ class AutoMod(commands.Cog):
             guild_cache = self.spam_cache.setdefault(guild_id, {})
             user_times = guild_cache.setdefault(user.id, [])
             user_times.append(now)
-            # keep last 5 seconds
             guild_cache[user.id] = [t for t in user_times if (now - t).total_seconds() <= 5]
             if len(guild_cache[user.id]) >= 5:
                 await message.delete()
-                await self._punish(user, message.channel,
-                                   punishment=sp_punishment,
-                                   duration=sp_timeout,
-                                   reason="Spamming")
+                await self._punish(user, message.channel, punishment=sp_punishment,
+                                   duration=sp_timeout, reason="Spamming")
                 guild_cache[user.id].clear()
                 await self.bot.process_commands(message)
                 return
@@ -95,47 +87,26 @@ class AutoMod(commands.Cog):
         except Exception as e:
             print(f"Error punishing {user}: {e}")
 
-    # --- Slash Commands ---
+# --- Define Commands as Standalone Functions Outside Class ---
+@app_commands.command(name="addbadword", description="Add a word to the bad word list.")
+@app_commands.describe(word="Word to block")
+async def add_badword_cmd(interaction: discord.Interaction, word: str):
+    add_badword(interaction.guild.id, word)
+    await interaction.response.send_message(f"✅ Added `{word}` to the bad word list.", ephemeral=False)
 
-    @app_commands.command(name="addbadword", description="Add a word to the bad word list.")
-    @app_commands.describe(word="Word to block")
-    async def add_badword_cmd(self, interaction: discord.Interaction, word: str):
-        add_badword(interaction.guild.id, word)
-        await interaction.response.send_message(f"✅ Added `{word}` to the bad word list.", ephemeral=True)
+@app_commands.command(name="removebadword", description="Remove a word from the bad word list.")
+@app_commands.describe(word="Word to remove")
+async def remove_badword_cmd(interaction: discord.Interaction, word: str):
+    remove_badword(interaction.guild.id, word)
+    await interaction.response.send_message(f"✅ Removed `{word}` from the bad word list.", ephemeral=False)
 
-    @app_commands.command(name="removebadword", description="Remove a word from the bad word list.")
-    @app_commands.describe(word="Word to remove")
-    async def remove_badword_cmd(self, interaction: discord.Interaction, word: str):
-        remove_badword(interaction.guild.id, word)
-        await interaction.response.send_message(f"✅ Removed `{word}` from the bad word list.", ephemeral=True)
-
-    @app_commands.command(name="viewbadwords", description="View all blacklisted words.")
-    async def view_badwords_cmd(self, interaction: discord.Interaction):
-        words = get_badwords(interaction.guild.id)
-        if words:
-            await interaction.response.send_message(
-                "🚫 Blacklisted words: " + ", ".join(f"`{w}`" for w in words), ephemeral=True)
-        else:
-            await interaction.response.send_message("✅ No bad words set.", ephemeral=True)
-
-    @app_commands.command(name="antispam", description="Enable or disable anti-spam.")
-    @app_commands.describe(status="enable or disable")
-    async def antispam_cmd(self, interaction: discord.Interaction, status: str):
-        enabled = status.lower() == "enable"
-        # preserve existing punish & timeout
-        _, pun, t = get_antispam_settings(interaction.guild.id)
-        set_antispam_settings(interaction.guild.id, enabled, pun, t)
+@app_commands.command(name="viewbadwords", description="View all blacklisted words.")
+async def view_badwords_cmd(interaction: discord.Interaction):
+    words = get_badwords(interaction.guild.id)
+    if words:
         await interaction.response.send_message(
-            f"✅ Anti-spam {'enabled' if enabled else 'disabled'}.", ephemeral=True)
+            "🚫 Blacklisted words: " + ", ".join(f"`{w}`" for w in words), ephemeral=False)
+    else:
+        await interaction.response.send_message("✅ No bad words set.", ephemeral=False)
 
-    @app_commands.command(name="antilink", description="Enable or disable anti-link.")
-    @app_commands.describe(status="enable or disable")
-    async def antilink_cmd(self, interaction: discord.Interaction, status: str):
-        enabled = status.lower() == "enable"
-        _, pun, t = get_antilink_settings(interaction.guild.id)
-        set_antilink_settings(interaction.guild.id, enabled, pun, t)
-        await interaction.response.send_message(
-            f"✅ Anti-link {'enabled' if enabled else 'disabled'}.", ephemeral=True)
-
-async def setup(bot):
-    await bot.add_cog(AutoMod(bot))
+@app_commands.command(name="antispam", description="Enable or disable anti-spam_
