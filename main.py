@@ -46,7 +46,7 @@ COGS = [
 @bot.event
 async def on_ready():
     print(f"✅ Logged in as {bot.user} (ID: {bot.user.id})")
-    await bot.change_presence(activity=discord.Game(name="Use /help | NexuSec"))
+    await bot.change_presence(activity=discord.Game(name="/help | NexuSecbot.gg"))
     try:
         synced = await bot.tree.sync()
         print(f"🔁 Synced {len(synced)} slash command(s).")
