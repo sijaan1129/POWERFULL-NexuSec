@@ -114,17 +114,73 @@ class Utility(commands.Cog):
         self.verified_users.discard(interaction.user.id)
         await interaction.response.send_message("❌ You are no longer verified.")
 
-    @app_commands.command(name="help", description="Show all available commands.")
-    async def help(self, interaction: discord.Interaction):
-        """Show all available commands."""
-        embed = discord.Embed(title="🤖 NexuSec Help Menu", color=discord.Color.blue())
-        embed.add_field(name="🛡️ Moderation", value="`/ban`, `/kick`, `/mute`, `/warn`, `/lock`, etc.", inline=False)
-        embed.add_field(name="⚙️ AutoMod", value="`/antispam`, `/antilink`, `/addbadword`, etc.", inline=False)
-        embed.add_field(name="🧰 Utility", value="`/ping`, `/userinfo`, `/uptime`, `/afk`, etc.", inline=False)
-        embed.add_field(name="📢 Announcement", value="`/announce`, `/welcome`, `/log`, `/autoroles`, etc.", inline=False)
-        embed.add_field(name="🎉 Fun", value="`/poll`, `/giveaway`", inline=False)
-        embed.add_field(name="💬 Custom Commands", value="`/custom add`, `/custom delete`, `/custom list`", inline=False)
-        await interaction.response.send_message(embed=embed)
+    @app_commands.command(name="help", description="Show all commands and their descriptions")
+async def slash_help(self, interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="📖 NexuSec Help Menu",
+        description="Here are all the available commands and what they do:",
+        color=discord.Color.blurple()
+    )
+    embed.set_footer(text="Use these commands to configure NexuSec in your server!")
+
+    # Automod
+    embed.add_field(
+        name="/antilink",
+        value="Enable/disable link filtering; choose punishment (timeout/kick/ban) and duration",
+        inline=False
+    )
+    embed.add_field(
+        name="/antispam",
+        value="Enable/disable spam filtering; choose punishment (timeout/kick/ban) and duration",
+        inline=False
+    )
+
+    # Bad word management
+    embed.add_field(
+        name="/addbadword <word>",
+        value="Add a word to the bad‑word list for this server",
+        inline=False
+    )
+    embed.add_field(
+        name="/removebadword <word>",
+        value="Remove a word from the bad‑word list",
+        inline=False
+    )
+    embed.add_field(
+        name="/viewbadwords",
+        value="Show all currently blocked words for this server",
+        inline=False
+    )
+
+    # Moderation
+    embed.add_field(name="/ban <user> [reason]", value="Ban a member", inline=False)
+    embed.add_field(name="/kick <user> [reason]", value="Kick a member", inline=False)
+    embed.add_field(name="/mute <user> [duration]", value="Timeout a member", inline=False)
+    embed.add_field(name="/unmute <user>", value="Remove timeout from a member", inline=False)
+    embed.add_field(name="/warn <user> [reason]", value="Issue a warning", inline=False)
+    embed.add_field(name="/warnings <user>", value="View a user’s warnings", inline=False)
+    embed.add_field(name="/clear <count>", value="Delete the last N messages", inline=False)
+
+    # Utility / Fun
+    embed.add_field(name="/ping", value="Check bot latency", inline=False)
+    embed.add_field(name="/userinfo [user]", value="Get info about a user", inline=False)
+    embed.add_field(name="/serverinfo", value="Get info about this server", inline=False)
+    embed.add_field(name="/roles", value="List all server roles", inline=False)
+    embed.add_field(name="/roleinfo <role>", value="Get info on a role", inline=False)
+    embed.add_field(name="/avatar [user]", value="Show a user’s avatar", inline=False)
+    embed.add_field(name="/uptime", value="Show how long the bot has been online", inline=False)
+    embed.add_field(name="/afk [reason]", value="Set yourself as AFK", inline=False)
+    embed.add_field(name="/verify", value="Mark yourself as verified (fake)", inline=False)
+    embed.add_field(name="/unverify", value="Remove your verification bypass", inline=False)
+    embed.add_field(name="/poll <question>", value="Create a quick yes/no poll", inline=False)
+    embed.add_field(name="/giveaway <prize>", value="Start a giveaway", inline=False)
+    embed.add_field(name="/announce <message>", value="Send an announcement", inline=False)
+    embed.add_field(name="/welcome <channel>", value="Configure welcome messages", inline=False)
+    embed.add_field(name="/autoroles <role>", value="Set up auto‑roles for new members", inline=False)
+    embed.add_field(name="/custom add/delete/list", value="Manage custom commands", inline=False)
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(Utility(bot))
