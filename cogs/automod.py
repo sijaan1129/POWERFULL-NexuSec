@@ -1,57 +1,103 @@
 import discord
 from discord.ext import commands
-from db import get_badwords, get_antilink_settings, get_antispam_settings
-from datetime import datetime
+from discord.utils import utcnow
+from datetime import timedelta
+from db import (
+    get_badwords,
+    get_antilink_settings,
+    get_antispam_settings
+)
+import re
 
 class AutoMod(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # For spam detection: {guild_id: {user_id: [timestamps]}}
+        self.message_cache = {}
+        # Regex for links
+        self.link_pattern = re.compile(r"(https?://\S+|discord\.gg/\S+)")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.author.bot:
+        # Ignore bots and DMs
+        if message.author.bot or not message.guild:
             return
 
-        # Bad Word Check
-        badwords = get_badwords(message.guild.id)
+        guild_id = message.guild.id
+        user = message.author
+        bot_member = message.guild.get_member(self.bot.user.id)
+
+        # Skip if message author has higher or equal top role than bot
+        if user.top_role >= bot_member.top_role:
+            # Let commands still be processed
+            await self.bot.process_commands(message)
+            return
+
+        content = message.content.lower()
+
+        # --- Bad Word Filter ---
+        badwords = get_badwords(guild_id)
         for word in badwords:
-            if word.lower() in message.content.lower():
-                await self.handle_badword(message, word)
+            if word in content:
+                await message.delete()
+                await self._punish(user, guild_id, reason="Used bad word")
+                # Stop further checks
+                await self.bot.process_commands(message)
                 return
 
-        # Anti-Link Check
-        link_enabled, punishment, _ = get_antilink_settings(message.guild.id)
-        if link_enabled and any(keyword in message.content.lower() for keyword in ['http://', 'https://', 'discord.gg']):
-            await self.handle_antilink(message, punishment)
+        # --- Anti-Link Filter ---
+        antilink_enabled, antilink_punishment, antilink_timeout = get_antilink_settings(guild_id)
+        if antilink_enabled and self.link_pattern.search(content):
+            await message.delete()
+            await self._punish(user, guild_id, punishment=antilink_punishment,
+                               duration=antilink_timeout, reason="Posted a link")
+            await self.bot.process_commands(message)
+            return
 
-        # Anti-Spam Check
-        spam_enabled, _, _ = get_antispam_settings(message.guild.id)
-        if spam_enabled:
-            await self.handle_antisam(message)
+        # --- Anti-Spam Filter ---
+        antispam_enabled, antispam_punishment, antispam_timeout = get_antispam_settings(guild_id)
+        if antispam_enabled:
+            # Initialize per-guild cache
+            self.message_cache.setdefault(guild_id, {})
+            user_times = self.message_cache[guild_id].setdefault(user.id, [])
+            now = utcnow()
+            # Keep only messages in last 5 seconds
+            user_times.append(now)
+            user_times[:] = [t for t in user_times if (now - t).total_seconds() <= 5]
 
-    async def handle_badword(self, message: discord.Message, word: str):
-        print(f"Bad word detected: {word}")
-        # Delete the message
-        await message.delete()
-        # Apply punishment if needed (ban, kick, or timeout)
-        # Punishment logic to be added here
+            # Threshold: 5 messages
+            if len(user_times) >= 5:
+                # Clear cache for user
+                self.message_cache[guild_id][user.id] = []
+                await message.delete()
+                await self._punish(user, guild_id, punishment=antispam_punishment,
+                                   duration=antispam_timeout, reason="Spamming")
+                await self.bot.process_commands(message)
+                return
 
-    async def handle_antilink(self, message: discord.Message, punishment: str):
-        print(f"Link detected in message: {message.content}")
-        # Delete the message with the link
-        await message.delete()
-        # Apply punishment based on the selected punishment type (timeout, ban, kick)
-        if punishment == "timeout":
-            await message.author.timeout(datetime.utcnow(), reason="Sent a link while Anti-Link is enabled.")
-        elif punishment == "ban":
-            await message.guild.ban(message.author, reason="Sent a link while Anti-Link is enabled.")
-        elif punishment == "kick":
-            await message.guild.kick(message.author, reason="Sent a link while Anti-Link is enabled.")
+        # Finally, process other commands
+        await self.bot.process_commands(message)
 
-    async def handle_antisam(self, message: discord.Message):
-        print(f"Spam detected in message: {message.content}")
-        # Implement Anti-Spam handling here (e.g., deleting spammy messages, applying timeouts)
-        pass
+    async def _punish(self, user, guild_id, punishment=None, duration=None, reason=None):
+        # Determine punishment type and duration
+        # If punishment or duration not provided, fetch defaults from DB
+        if not punishment or not duration:
+            # For bad word or fallback, choose timeout 5 min
+            punishment = punishment or "timeout"
+            duration = duration or 5
+
+        try:
+            if punishment == "timeout":
+                until = utcnow() + timedelta(minutes=duration)
+                await user.timeout(until=until, reason=reason)
+            elif punishment == "kick":
+                await user.kick(reason=reason)
+            elif punishment == "ban":
+                await user.ban(reason=reason)
+        except discord.Forbidden:
+            print(f"Permission error punishing {user} for {reason}")
+        except Exception as e:
+            print(f"Error punishing {user}: {e}")
 
 async def setup(bot):
     await bot.add_cog(AutoMod(bot))
