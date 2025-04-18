@@ -109,4 +109,29 @@ async def view_badwords_cmd(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("✅ No bad words set.", ephemeral=False)
 
-@app_commands.command(name="antispam", description="Enable or disable anti-spam_
+@app_commands.command(name="antispam", description="Enable or disable anti-spam.")
+@app_commands.describe(status="enable or disable")
+async def antispam_cmd(interaction: discord.Interaction, status: str):
+    enabled = status.lower() == "enable"
+    _, pun, t = get_antispam_settings(interaction.guild.id)
+    set_antispam_settings(interaction.guild.id, enabled, pun, t)
+    await interaction.response.send_message(
+        f"✅ Anti-spam {'enabled' if enabled else 'disabled'}.", ephemeral=False)
+
+@app_commands.command(name="antilink", description="Enable or disable anti-link.")
+@app_commands.describe(status="enable or disable")
+async def antilink_cmd(interaction: discord.Interaction, status: str):
+    enabled = status.lower() == "enable"
+    _, pun, t = get_antilink_settings(interaction.guild.id)
+    set_antilink_settings(interaction.guild.id, enabled, pun, t)
+    await interaction.response.send_message(
+        f"✅ Anti-link {'enabled' if enabled else 'disabled'}.", ephemeral=False)
+
+# --- Register the Cog and Commands ---
+async def setup(bot):
+    await bot.add_cog(AutoMod(bot))
+    bot.tree.add_command(add_badword_cmd)
+    bot.tree.add_command(remove_badword_cmd)
+    bot.tree.add_command(view_badwords_cmd)
+    bot.tree.add_command(antispam_cmd)
+    bot.tree.add_command(antilink_cmd)
