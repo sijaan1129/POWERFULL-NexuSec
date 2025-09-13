@@ -41,7 +41,7 @@ except Exception as e:
 # On ready
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=discord.Game(name="/help | NexuSec"))
+    await bot.change_presence(activity=discord.Game(name="Best Host | INDI"))
     print(f"✅ Logged in as {bot.user} (ID: {bot.user.id})")
 
     try:
