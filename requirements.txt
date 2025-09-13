@@ -1,4 +1,15 @@
 discord.py
-flask
-waitress
+motor
+python-dotenv
+Flask
+nest_asyncio
+aiohttp
+dnspython
+requests
+pytz
+googletrans
+feedparser
+wavelink
+yt-dlp
 PyNaCl
+spotipy
