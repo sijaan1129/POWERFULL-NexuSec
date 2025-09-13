@@ -1,72 +1,89 @@
+
 import discord
 from discord.ext import commands
 import os
 import asyncio
-import threading
-import logging
-from flask import Flask
-from datetime import datetime
-from db import init_db
+from motor.motor_asyncio import AsyncIOMotorClient
+from dotenv import load_dotenv
+from keep_alive import keep_alive
 
-# --- Logging ---
-logging.basicConfig(level=logging.INFO)
+from utils.mongo import get_guild_config 
+from utils import mongo 
+from cogs.verification import VerifyButtonView 
 
-# --- Web server for Render ---
-app = Flask("")
+load_dotenv()
+TOKEN = os.getenv("TOKEN")
+MONGO_URI = os.getenv("MONGO_URI")
 
-@app.route("/")
-def home():
-    return f"NexuSec is online – {datetime.utcnow()} UTC"
+intents = discord.Intents.default()
+intents.message_content = True
+intents.guilds = True
+intents.members = True
+intents.messages = True
 
-def run_web():
-    from waitress import serve
-    serve(app, host="0.0.0.0", port=8080)
+async def get_prefix(bot, message):
+    if not message.guild:
+        return "."
+    config = await get_guild_config(str(message.guild.id))
+    return config.get("prefix", ".")
 
-threading.Thread(target=run_web, daemon=True).start()
+bot = commands.Bot(command_prefix=get_prefix, intents=intents)
+bot.remove_command("help")
 
-# ✅ Initialize database
-init_db()
+try:
+    mongo_client = AsyncIOMotorClient(MONGO_URI)
+    bot.mongo_client = mongo_client
+    bot.db = mongo_client["nexusec"]
+    print("✅ Connected to MongoDB.")
+except Exception as e:
+    print(f"❌ MongoDB connection failed: {type(e).__name__} - {e}")
 
-# Bot Setup
-intents = discord.Intents.all()
-bot = commands.Bot(command_prefix="!", intents=intents)
-
-COGS = [
-    "cogs.moderation",
-    "cogs.automod",
-    "cogs.utility",
-    "cogs.announcements",
-    "cogs.fun",
-    "cogs.custom_commands",
-    "cogs.whitelist",
-    "cogs.help"  # 👈 Added Help cog
-]
-
-# --- Slash Commands ---
+# On ready
 @bot.event
 async def on_ready():
+    await bot.change_presence(activity=discord.Game(name="/help | NexuSec"))
     print(f"✅ Logged in as {bot.user} (ID: {bot.user.id})")
-    await bot.change_presence(activity=discord.Game(name="/help | NexuSecbot.gg"))
+
     try:
-        synced = await bot.tree.sync()
-        print(f"🔁 Synced {len(synced)} slash command(s).")
+        bot.add_view(VerifyButtonView())  # ✅ Persistent view
+        print("✅ Added persistent VerifyButtonView.")
     except Exception as e:
-        print(f"❌ Error syncing commands: {e}")
+        print(f"❌ Failed to add view: {type(e).__name__} - {e}")
+
+    synced = await bot.tree.sync()
+    print(f"🔁 Synced {len(synced)} slash commands.")
+    print("------")
 
 async def load_cogs():
-    for cog in COGS:
-        try:
-            await bot.load_extension(cog)
-            print(f"✅ Loaded cog: {cog}")
-        except Exception as e:
-            print(f"❌ Failed to load {cog}: {e}")
+    print("🔍 Loading cogs...")
+    if not os.path.exists("cogs"):
+        os.makedirs("cogs")
+        print("📁 Created 'cogs' folder.")
+
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            try:
+                await bot.load_extension(f"cogs.{filename[:-3]}")
+                print(f"✅ Loaded: {filename}")
+            except Exception as e:
+                print(f"❌ Failed to load {filename}: {type(e).__name__} - {e}. Please ensure 'cogs/{filename}' exists and is error-free.")
+    print("✅ All cogs loaded.")
 
 async def main():
+    print("🚀 Starting NexuSec...")
+    keep_alive()
     async with bot:
         await load_cogs()
-        await bot.start(os.getenv("DISCORD_TOKEN"))
+        try:
+            await bot.start(TOKEN)
+        finally:
+            await bot.close()
+            mongo_client.close()
+            print("🛑 MongoDB connection closed.")
 
 try:
     asyncio.run(main())
+except KeyboardInterrupt:
+    print("🛑 Bot manually stopped.")
 except Exception as e:
-    print(f"❌ Bot crashed: {e}")
+    print(f"💥 Unhandled exception: {type(e).__name__} - {e}")
